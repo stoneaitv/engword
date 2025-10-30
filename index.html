@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>English Word Master</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --primary: #3b82f6;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: radial-gradient(1200px 800px at 70% -10%, #1f2937 0%, var(--bg) 55%);
+      color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "맑은 고딕", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      display: grid; place-items: center; padding: 20px;
+    }
+    .app { width: 100%; max-width: 900px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 22px;
+    }
+    h1 { margin: 0 0 8px; font-weight: 800; letter-spacing: .3px; }
+    .muted { color: var(--muted); }
+    .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .btn {
+      background: #0b1220; border: 1px solid rgba(255,255,255,.08); color: var(--text);
+      padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: .2s ease; font-weight: 700;
+    }
+    .btn.primary { background: var(--primary); border-color: rgba(0,0,0,.15); }
+    .btn.success { background: var(--accent); border-color: rgba(0,0,0,.15); }
+    .btn.warn { background: var(--warn); border-color: rgba(0,0,0,.15); }
+    .btn.ghost { background: transparent; }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .btn:active { transform: translateY(0); }
+    .grid { display: grid; gap: 16px; }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 720px){ .two { grid-template-columns: 1fr; } }
+    .stat {
+      background: #0b1220; border: 1px solid rgba(255,255,255,.08); padding: 12px 14px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .hint { font-size: 18px; line-height: 1.5; }
+    .input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #0b1220; color: var(--text); font-size: 18px; }
+    .tag { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: #cbd5e1; background: #0b1220; border: 1px solid rgba(255,255,255,.1); padding: 6px 10px; border-radius: 999px; }
+    .divider { height: 1px; background: rgba(255,255,255,.08); margin: 16px 0; }
+    .level { font-weight: 800; }
+    .timerBar { height: 10px; background: #0b1220; border: 1px solid rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+    .timerFill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent), var(--primary)); transition: width .2s linear; }
+    .toast { position: fixed; top: 16px; right: 16px; background: #0b1220; border: 1px solid rgba(255,255,255,.1); padding: 12px 14px; border-radius: 12px; box-shadow: var(--shadow); display: none; }
+    .list { list-style: none; padding: 0; margin: 0; }
+    .list li { padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,.08); }
+    .ok { color: var(--accent); }
+    .bad { color: var(--danger); }
+    .small { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card" id="screenStart">
+      <h1>English Word Master</h1>
+      <p class="muted">뜻/문장/오디오 힌트를 보고 <b>30초</b> 안에 단어를 맞히세요. 3연속 정답은 <b>콤보 보너스</b>! 틀린 단어는 자동으로 <b>나의 단어장</b>에 저장됩니다.</p>
+      <div class="divider"></div>
+      <div class="grid two">
+        <div class="card" style="padding:16px">
+          <div class="row" style="justify-content:space-between">
+            <span class="tag">모드</span>
+            <select id="mode" class="btn">
+              <option value="mixed">Mixed (추천)</option>
+              <option value="meaning">Meaning</option>
+              <option value="sentence">Sentence</option>
+              <option value="audio">Audio</option>
+            </select>
+          </div>
+          <div class="row" style="justify-content:space-between; margin-top:10px;">
+            <span class="tag">난이도</span>
+            <select id="level" class="btn">
+              <option value="1">Lv1 Beginner</option>
+              <option value="2">Lv2 Explorer</option>
+              <option value="3">Lv3 Challenger</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:16px">
+          <p class="muted small">💡 팁: 오답 시 시간 −5초, <b>힌트</b>로 첫 글자 보기, <b>건너뛰기</b>로 다음 문제로 넘어갈 수 있어요.</p>
+          <div class="row"><button class="btn primary" id="btnStart">Start Game</button><button class="btn ghost" id="btnMyWordsOpen">My Words</button><button class="btn ghost" id="btnHow">How to Play</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="screenGame" style="display:none">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <div class="row" style="gap:10px">
+          <span class="tag" id="modeBadge">MIXED</span>
+          <span class="tag level" id="levelBadge">LV1</span>
+        </div>
+        <div class="row">
+          <div class="stat"><span>Score</span><b id="score">0</b></div>
+          <div class="stat"><span>Combo</span><b id="combo">0</b></div>
+          <div class="stat"><span>Best</span><b id="best">0</b></div>
+        </div>
+      </div>
+      <div class="timerBar" style="margin:14px 0 10px">
+        <div class="timerFill" id="timerFill"></div>
+      </div>
+      <p class="muted small" id="timerText">30.0s</p>
+      <div class="divider"></div>
+
+      <div id="questionArea" class="grid" style="gap:10px">
+        <div class="hint" id="hint">—</div>
+        <input id="answer" class="input" placeholder="Type your answer and press Enter" autocomplete="off" />
+        <div class="row">
+          <button class="btn" id="btnHint">힌트(첫 글자)</button>
+          <button class="btn warn" id="btnSkip">건너뛰기 (−2점)</button>
+          <button class="btn" id="btnSpeak">🔊 듣기</button>
+          <button class="btn ghost" id="btnQuit">종료</button>
+        </div>
+        <p class="small muted" id="feedback"> </p>
+      </div>
+    </div>
+
+    <div class="card" id="screenResult" style="display:none">
+      <h2>게임 종료</h2>
+      <p class="muted">최종 점수: <b id="finalScore">0</b> | 최대 콤보: <b id="finalCombo">0</b> | 맞힌 개수: <b id="finalCorrect">0</b></p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="btnRestart">다시 시작</button>
+        <button class="btn" id="btnGoHome">메인으로</button>
+        <button class="btn" id="btnMyWordsOpen2">My Words</button>
+      </div>
+    </div>
+
+    <div class="card" id="screenMyWords" style="display:none">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0">My Words (틀린 단어장)</h2>
+        <div class="row">
+          <button class="btn" id="btnExport">내보내기 .txt</button>
+          <button class="btn" id="btnClear">비우기</button>
+          <button class="btn" id="btnCloseMyWords">닫기</button>
+        </div>
+      </div>
+      <ul class="list" id="myWordsList"></ul>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    // --- Sample Dictionary ---------------------------------------------------
+    // You can extend this list or replace with your own.
+    const WORD_BANK = [
+      { word: "apple", meaning: "사과", sentence: "I like ___ pie." },
+      { word: "book", meaning: "책", sentence: "This ___ is very interesting." },
+      { word: "computer", meaning: "컴퓨터", sentence: "I bought a new ___ yesterday." },
+      { word: "travel", meaning: "여행하다", sentence: "I love to ___ in summer." },
+      { word: "music", meaning: "음악", sentence: "She listens to ___ every night." },
+      { word: "kitchen", meaning: "부엌", sentence: "My mom is in the ___." },
+      { word: "mountain", meaning: "산", sentence: "They climbed the high ___." },
+      { word: "ocean", meaning: "바다", sentence: "The ___ is calm today." },
+      { word: "language", meaning: "언어", sentence: "Korean is a beautiful ___." },
+      { word: "future", meaning: "미래", sentence: "We plan for the ___." },
+      { word: "create", meaning: "만들다", sentence: "Let's ___ a game together." },
+      { word: "honest", meaning: "정직한", sentence: "Please be ___ with me." },
+      { word: "energy", meaning: "에너지", sentence: "Solar ___ is clean." },
+      { word: "patient", meaning: "참을성 있는", sentence: "Be ___ and wait." },
+      { word: "difficult", meaning: "어려운", sentence: "This problem is ___." },
+    ];
+
+    // --- Utilities -----------------------------------------------------------
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $("toast");
+    const showToast = (msg) => {
+      toastEl.textContent = msg;
+      toastEl.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.style.display = 'none', 1400);
+    };
+
+    const synth = window.speechSynthesis;
+    function speak(text){
+      if (!('speechSynthesis' in window)) return showToast('TTS not supported');
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      synth.cancel();
+      synth.speak(u);
+    }
+
+    // --- Persistent store for My Words --------------------------------------
+    const STORE_KEY = 'ewm_mywords_v1';
+    const bestKey = 'ewm_best_v1';
+    function loadMyWords(){
+      try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }
+      catch(e){ return []; }
+    }
+    function saveMyWords(list){ localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+
+    // --- Game State ----------------------------------------------------------
+    const game = {
+      mode: 'mixed',
+      level: 1,
+      score: 0,
+      combo: 0,
+      best: Number(localStorage.getItem(bestKey) || 0),
+      timer: 30,
+      timerId: null,
+      current: null, // {word, meaning, sentence}
+      history: [],
+      correctCount: 0,
+    };
+
+    // --- Screens -------------------------------------------------------------
+    function showScreen(id){
+      ["screenStart","screenGame","screenResult","screenMyWords"].forEach(s=> $(s).style.display = 'none');
+      $(id).style.display = 'block';
+    }
+
+    // --- Level filter (simple demo) -----------------------------------------
+    function filteredBank(){
+      // For demo: level increases length/complexity roughly by word length
+      const L = Number(game.level);
+      const ranges = {
+        1: [0, 6],
+        2: [0, 8],
+        3: [0, 20],
+      };
+      const [minLen, maxLen] = [1, ranges[L][1]];
+      return WORD_BANK.filter(w => w.word.length >= minLen && w.word.length <= maxLen);
+    }
+
+    // --- Question generation -------------------------------------------------
+    function nextQuestion(){
+      const pool = filteredBank();
+      game.current = pool[Math.floor(Math.random()*pool.length)];
+      const modes = game.mode === 'mixed' ? ['meaning','sentence','audio'] : [game.mode];
+      const type = modes[Math.floor(Math.random()*modes.length)];
+      const { word, meaning, sentence } = game.current;
+
+      if (type === 'meaning') {
+        $("hint").innerHTML = `뜻: <b>${meaning}</b>`;
+      } else if (type === 'sentence') {
+        $("hint").innerHTML = `문장: <b>${sentence}</b>`;
+      } else {
+        $("hint").innerHTML = `오디오 힌트 ▶ 단어 발음을 듣고 맞히세요.`;
+        speak(word);
+      }
+
+      $("answer").value = '';
+      $("answer").focus();
+      $("feedback").innerHTML = '&nbsp;';
+    }
+
+    // --- Timer ---------------------------------------------------------------
+    function setTimer(sec){
+      game.timer = sec;
+      updateTimerUI();
+      clearInterval(game.timerId);
+      game.timerId = setInterval(() => {
+        game.timer -= 0.1;
+        if (game.timer <= 0) { game.timer = 0; endGame(); }
+        updateTimerUI();
+      }, 100);
+    }
+    function updateTimerUI(){
+      const pct = Math.max(0, Math.min(100, (game.timer/30)*100));
+      $("timerFill").style.width = pct + '%';
+      $("timerText").textContent = game.timer.toFixed(1) + 's';
+      if (pct < 30) $("timerFill").style.background = `linear-gradient(90deg, var(--danger), var(--warn))`;
+      else $("timerFill").style.background = `linear-gradient(90deg, var(--accent), var(--primary))`;
+    }
+
+    // --- Scoring -------------------------------------------------------------
+    function onCorrect(){
+      game.score += 10;
+      game.combo += 1;
+      game.correctCount += 1;
+      if (game.combo % 3 === 0) {
+        game.score += 20; // combo bonus
+        showToast(`🔥 Combo x${game.combo}! +20`);
+      } else {
+        showToast(`✅ Correct! +10`);
+      }
+      updateStats();
+      nextQuestion();
+    }
+
+    function onWrong(){
+      game.score = Math.max(0, game.score - 5);
+      game.combo = 0;
+      game.timer = Math.max(0, game.timer - 5);
+      updateTimerUI();
+      updateStats();
+      const w = game.current?.word || '';
+      addMyWord(game.current);
+      $("feedback").innerHTML = `<span class="bad">오답!</span> 정답은 <b>${w}</b>`;
+      showToast(`❌ Wrong −5 / −5s`);
+    }
+
+    function onSkip(){
+      game.score = Math.max(0, game.score - 2);
+      game.combo = 0;
+      addMyWord(game.current);
+      updateStats();
+      nextQuestion();
+    }
+
+    function updateStats(){
+      $("score").textContent = game.score;
+      $("combo").textContent = game.combo;
+      $("best").textContent = game.best;
+    }
+
+    // --- My Words ------------------------------------------------------------
+    function addMyWord(item){
+      if (!item) return;
+      const list = loadMyWords();
+      if (!list.find(x => x.word === item.word)){
+        list.push(item);
+        saveMyWords(list);
+      }
+    }
+    function renderMyWords(){
+      const list = loadMyWords();
+      const ul = $("myWordsList");
+      ul.innerHTML = '';
+      if (list.length === 0){ ul.innerHTML = '<li class="muted">비어있습니다.</li>'; return; }
+      list.forEach(({word,meaning,sentence}) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<b>${word}</b> — ${meaning}<div class="small muted">${sentence}</div>`;
+        ul.appendChild(li);
+      });
+    }
+
+    // --- Game lifecycle ------------------------------------------------------
+    function startGame(){
+      game.mode = $("mode").value;
+      game.level = Number($("level").value);
+      $("modeBadge").textContent = game.mode.toUpperCase();
+      $("levelBadge").textContent = 'LV' + game.level;
+      game.score = 0; game.combo = 0; game.correctCount = 0; game.history = [];
+      updateStats();
+      showScreen('screenGame');
+      nextQuestion();
+      setTimer(30);
+    }
+
+    function endGame(){
+      clearInterval(game.timerId);
+      const final = game.score;
+      if (final > game.best){ game.best = final; localStorage.setItem(bestKey, String(final)); }
+      $("finalScore").textContent = final;
+      $("finalCombo").textContent = game.combo;
+      $("finalCorrect").textContent = game.correctCount;
+      showScreen('screenResult');
+    }
+
+    // --- Events --------------------------------------------------------------
+    $("btnStart").addEventListener('click', startGame);
+    $("btnQuit").addEventListener('click', endGame);
+    $("btnRestart").addEventListener('click', startGame);
+    $("btnGoHome").addEventListener('click', () => showScreen('screenStart'));
+    $("btnMyWordsOpen").addEventListener('click', () => { renderMyWords(); showScreen('screenMyWords'); });
+    $("btnMyWordsOpen2").addEventListener('click', () => { renderMyWords(); showScreen('screenMyWords'); });
+    $("btnCloseMyWords").addEventListener('click', () => showScreen('screenStart'));
+    $("btnClear").addEventListener('click', () => { if (confirm('단어장을 비울까요?')) { saveMyWords([]); renderMyWords(); } });
+    $("btnExport").addEventListener('click', () => {
+      const lines = loadMyWords().map(x => `${x.word}\t${x.meaning}\t${x.sentence}`);
+      const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'my_words.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    $("btnHow").addEventListener('click', () => alert('30초 안에 정답을 입력하세요!\n오답: −5점/−5초, 콤보 3회마다 +20점.\n힌트(첫 글자), 건너뛰기(−2점)를 활용하세요.'));
+
+    $("btnHint").addEventListener('click', () => {
+      const w = game.current?.word || '';
+      if (!w) return;
+      $("feedback").innerHTML = `힌트: <b>${w[0]}</b>__`;
+    });
+
+    $("btnSkip").addEventListener('click', onSkip);
+    $("btnSpeak").addEventListener('click', () => {
+      if (!game.current) return;
+      speak(game.current.word);
+    });
+
+    $("answer").addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = e.target.value.trim().toLowerCase();
+        if (!val) return;
+        const target = (game.current?.word || '').toLowerCase();
+        if (val === target) {
+          onCorrect();
+        } else {
+          onWrong();
+        }
+      }
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if ($('screenGame').style.display === 'none') return;
+      if (e.key === 'Escape') endGame();
+      if (e.key.toLowerCase() === 'h') $("btnHint").click();
+      if (e.key.toLowerCase() === 's') $("btnSkip").click();
+      if (e.key.toLowerCase() === 'l') $("btnSpeak").click();
+    });
+
+    // Initialize start screen best score
+    $("best").textContent = game.best;
+  </script>
+</body>
+</html>
